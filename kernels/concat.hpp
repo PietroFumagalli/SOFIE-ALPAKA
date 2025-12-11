@@ -2,37 +2,48 @@
 #define ALPAKA_KERNELS_CONCAT_HPP
 
 #include <alpaka/alpaka.hpp>
+#include <array>
 
 namespace alpaka_kernels {
 
 struct ConcatKernel {
-    template <typename TAcc, typename T>
-    ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* const* input_ptrs, T* output,
-                                  std::size_t const* const* input_strides_ptrs, std::size_t const* axis_sizes,
-                                  std::size_t num_inputs, std::size_t axis, std::size_t const* output_strides,
-                                  std::size_t const* output_shape) const {
+    template <typename TAcc, typename T, typename Dim, typename Idx,
+              std::size_t N>
+    ALPAKA_FN_ACC void operator()(
+        TAcc const& acc,
+
+        // CHANGE 1: Use std::array
+        std::array<T const*, N> input_ptrs, T* output,
+        std::array<alpaka::Vec<Dim, Idx>, N> input_strides,
+        std::array<Idx, N> axis_sizes,
+
+        std::size_t num_inputs, std::size_t axis,
+        alpaka::Vec<Dim, Idx> output_strides,
+        alpaka::Vec<Dim, Idx> output_shape) const {
         using DimAcc = alpaka::Dim<TAcc>;
-        using IdxAcc = alpaka::Idx<TAcc>;
-        constexpr std::size_t D = static_cast<std::size_t>(DimAcc::value);
+        static_assert(DimAcc::value == Dim::value,
+                      "Accelerator and Data dims must match");
 
-        // Build shapeVec from output_shape to call uniformElementsND
-        alpaka::Vec<DimAcc, IdxAcc> shapeVec{};
-        for (std::size_t d = 0; d < D; ++d) shapeVec[d] = output_shape[d];
+        constexpr std::size_t D = Dim::value;
 
-        auto elements = alpaka::uniformElementsND(acc, shapeVec);
+        auto elements = alpaka::uniformElementsND(acc, output_shape);
 
         for (auto const& idx : elements) {
-            // compute linear output index
-            std::size_t out_idx = 0;
-            for (std::size_t d = 0; d < D; ++d) out_idx += idx[d] * output_strides[d];
+            // A. Compute Output Index
+            Idx out_idx = 0;
+            for (std::size_t d = 0; d < D; ++d) {
+                out_idx += idx[d] * output_strides[d];
+            }
 
-            // find chosen input by scanning axis_sizes, computing cumulative offset
-            std::size_t axis_coord = idx[axis];
-
+            // B. Find which input matrix this pixel belongs to
+            Idx axis_coord = idx[axis];
             std::size_t chosen = 0;
-            std::size_t offset = 0;
-            for (std::size_t k = 0; k < num_inputs; ++k) {
-                std::size_t sz = axis_sizes[k];
+            Idx offset = 0;
+
+            for (std::size_t k = 0; k < N; ++k) {
+                if (k >= num_inputs) break;
+
+                Idx sz = axis_sizes[k];
                 if (axis_coord < offset + sz) {
                     chosen = k;
                     break;
@@ -40,15 +51,17 @@ struct ConcatKernel {
                 offset += sz;
             }
 
-            // compute input linear index: subtract offset for concat axis
-            std::size_t in_idx = 0;
+            // C. Compute Input Index
+            Idx in_idx = 0;
             for (std::size_t d = 0; d < D; ++d) {
-                std::size_t coord_out = idx[d];
-                std::size_t coord_in = (d == axis) ? (coord_out - offset) : coord_out;
-                in_idx += coord_in * input_strides_ptrs[chosen][d];
+                Idx coord_out = idx[d];
+                Idx coord_in = (d == axis) ? (coord_out - offset) : coord_out;
+
+                // std::array works with [] just like C-arrays
+                in_idx += coord_in * input_strides[chosen][d];
             }
 
-            // copy
+            // D. Copy
             T const* src = input_ptrs[chosen];
             output[out_idx] = src[in_idx];
         }
@@ -57,4 +70,4 @@ struct ConcatKernel {
 
 }  // namespace alpaka_kernels
 
-#endif  // ALPAKA_KERNELS_CONCAT_HPP
+#endif
