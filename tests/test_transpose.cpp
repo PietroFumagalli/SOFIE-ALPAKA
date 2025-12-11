@@ -27,7 +27,7 @@ int main() {
     std::uniform_int_distribution<int> distrib_int(100, 1000);
     std::uniform_real_distribution<float> distrib_real(-1.0f, 1.0f);
 
-    // Input matrix dimensions (rows x cols)
+    // Input matrix dimensions
     const std::size_t rows = distrib_int(gen);
     const std::size_t cols = distrib_int(gen);
     const std::size_t numElems = rows * cols;

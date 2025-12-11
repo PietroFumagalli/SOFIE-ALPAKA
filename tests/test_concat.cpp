@@ -21,25 +21,31 @@ int main() {
     using namespace alpaka_kernels;
     using T = float;
 
-    // --- inputs: three 2x2 matrices concatenated along axis 0 -> output shape
-    // (6,2)
+    // Random engine
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> distrib_int(100, 1000);
+    std::uniform_real_distribution<float> distrib_real(-1.0f, 1.0f);
+
+    // Input matrix dimensions
     const std::size_t num_inputs = 3;
-    const std::size_t in0 = 2, in1 = 2;  // input shape: [2,2]
-    std::vector<std::vector<T>> INPUT(num_inputs, std::vector<T>(in0 * in1));
+    const std::size_t cols = distrib_int(gen);
+    const std::size_t rows0 = distrib_int(gen);
+    const std::size_t rows1 = distrib_int(gen);
+    const std::size_t rows2 = distrib_int(gen);
 
-    for (std::size_t k = 0; k < num_inputs; ++k) {
-        for (std::size_t i = 0; i < in0 * in1; ++i)
-            INPUT[k][i] = static_cast<T>(k * 10 + i);
-    }
+    std::cout << "Inputs are of shape\n";
+    std::cout << rows0 << "x" << cols << "\n";
+    std::cout << rows1 << "x" << cols << "\n";
+    std::cout << rows2 << "x" << cols << "\n";
 
-    std::cout << "Inputs (each " << in0 << "x" << in1 << "):\n";
-    for (std::size_t k = 0; k < num_inputs; ++k) {
-        std::cout << "Input #" << k << ":\n";
-        for (std::size_t r = 0; r < in0; ++r) {
-            for (std::size_t c = 0; c < in1; ++c)
-                std::cout << INPUT[k][r * in1 + c] << " ";
-            std::cout << "\n";
-        }
+    std::vector<std::vector<T>> INPUT(num_inputs);
+    INPUT.push_back(std::vector<T>(rows0 * cols));
+    INPUT.push_back(std::vector<T>(rows1 * cols));
+    INPUT.push_back(std::vector<T>(rows2 * cols));
+
+    for (auto& vec : INPUT) {
+        for (auto& val : vec) val = distrib_real(gen);
     }
 
     // ------------------ platform / device / queue ------------------
