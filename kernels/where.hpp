@@ -1,5 +1,5 @@
-#ifndef ALPAKA_KERNELS_WHERE_HPP
-#define ALPAKA_KERNELS_WHERE_HPP
+#ifndef WHERE_KERNEL_HPP
+#define WHERE_KERNEL_HPP
 
 #include <alpaka/alpaka.hpp>
 
@@ -45,4 +45,4 @@ struct WhereKernel {
 
 }  // namespace alpaka_kernels
 
-#endif
+#endif  // WHERE_KERNEL_HPP

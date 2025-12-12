@@ -1,5 +1,5 @@
-#ifndef ALPAKA_KERNELS_CONCAT_HPP
-#define ALPAKA_KERNELS_CONCAT_HPP
+#ifndef CONCAT_KERNEL_HPP
+#define CONCAT_KERNEL_HPP
 
 #include <alpaka/alpaka.hpp>
 #include <array>
@@ -56,4 +56,4 @@ struct ConcatKernel {
 
 }  // namespace alpaka_kernels
 
-#endif
+#endif  // CONCAT_KERNEL_HPP
