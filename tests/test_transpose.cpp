@@ -5,7 +5,7 @@
 
 #include "../kernels/transpose.hpp"
 
-// Architecture configuration
+// Test domain parameters
 constexpr std::size_t NumDims = 2;
 using Dim = alpaka::DimInt<NumDims>;
 using Idx = std::size_t;
@@ -43,7 +43,6 @@ int main() {
     alpaka::Queue<Acc, alpaka::Blocking> queue{devAcc};
 
     // Allocate buffers
-    // Alpaka extent for linear allocation (1D)
     auto extent = alpaka::Vec<Dim, Idx>(cols, rows);
 
     // 1) Accelerator buffers
@@ -68,7 +67,7 @@ int main() {
     alpaka::memcpy(queue, aIn, hIn);
     alpaka::wait(queue);
 
-    // Execution
+    // Prepare kernel arguments
     auto input_shape = alpaka::Vec<Dim, Idx>(rows, cols);
     auto input_strides = alpaka::Vec<Dim, Idx>(cols, 1);
     auto output_shape = alpaka::Vec<Dim, Idx>(cols, rows);
@@ -83,10 +82,9 @@ int main() {
     const std::size_t blocksX = (cols + threadsX - 1) / threadsX;
     const std::size_t blocksY = (rows + threadsY - 1) / threadsY;
 
-    using DimT = alpaka::DimInt<2>;
-    auto const workDiv = alpaka::WorkDivMembers<DimT, Idx>{
-        alpaka::Vec<DimT, Idx>(blocksX, blocksY),
-        alpaka::Vec<DimT, Idx>(threadsX, threadsY), extent};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
+        alpaka::Vec<Dim, Idx>(blocksX, blocksY),
+        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extent};
 
     // Launch kernel
     TransposeKernel kernel;
