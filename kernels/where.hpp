@@ -44,3 +44,5 @@ struct WhereKernel {
 };
 
 }  // namespace alpaka_kernels
+
+#endif
