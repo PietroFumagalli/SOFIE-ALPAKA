@@ -119,10 +119,7 @@ int main() {
 
             for (Idx j = 0; j < extentIn[TopkAxis]; ++j) {
                 T const val = INPUT[i * cols + j];
-
-                if (count == K) {
-                    if (val <= top_vals[K - 1]) continue;
-                }
+                if (count == K && val <= top_vals[K - 1]) continue;
 
                 Idx insert_pos = 0;
                 while (insert_pos < count) {
