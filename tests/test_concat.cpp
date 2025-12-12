@@ -8,8 +8,8 @@
 
 // Test domain parameters
 constexpr std::size_t NumDims = 2;
-constexpr std::size_t num_inputs = 3;
-constexpr std::size_t concat_axis = 0;
+constexpr std::size_t NumInputs = 3;
+constexpr std::size_t ConcatAxis = 0;
 using Dim = alpaka::DimInt<NumDims>;
 using Idx = std::size_t;
 
@@ -34,20 +34,20 @@ int main() {
     const std::size_t cols = distrib_int(gen);
     std::size_t total_rows = 0;
 
-    std::array<std::size_t, num_inputs> in_rows;
+    std::array<std::size_t, NumInputs> in_rows;
     for (auto& val : in_rows) {
         val = distrib_int(gen);
         total_rows += val;
     }
 
-    std::cout << "Number of inputs: " << num_inputs << "\n";
+    std::cout << "Number of inputs: " << NumInputs << "\n";
     std::cout << "Inputs are of shape: ";
-    for (std::size_t k = 0; k < num_inputs; ++k)
+    for (std::size_t k = 0; k < NumInputs; ++k)
         std::cout << in_rows[k] << "x" << cols
-                  << ((k < num_inputs - 1) ? ", " : "\n");
+                  << ((k < NumInputs - 1) ? ", " : "\n");
 
-    std::array<std::vector<T>, num_inputs> INPUT;
-    for (std::size_t k = 0; k < num_inputs; ++k) {
+    std::array<std::vector<T>, NumInputs> INPUT;
+    for (std::size_t k = 0; k < NumInputs; ++k) {
         INPUT[k].resize(in_rows[k] * cols);
         for (auto& val : INPUT[k]) val = distrib_real(gen);
     }
@@ -64,24 +64,24 @@ int main() {
         decltype(alpaka::allocBuf<T, Idx>(devHost, alpaka::Vec<Dim, Idx>{}));
 
     std::vector<BufAcc> aIn_bufs;
-    aIn_bufs.reserve(num_inputs);
+    aIn_bufs.reserve(NumInputs);
 
     std::vector<BufHost> hIn_bufs;
-    hIn_bufs.reserve(num_inputs);
+    hIn_bufs.reserve(NumInputs);
 
     const std::size_t out_rows = total_rows;
     const std::size_t out_cols = cols;
-    auto extent_out = alpaka::Vec<Dim, Idx>(out_rows, out_cols);
+    auto extentOut = alpaka::Vec<Dim, Idx>(out_rows, out_cols);
 
-    for (std::size_t k = 0; k < num_inputs; ++k) {
-        auto extent = alpaka::Vec<Dim, Idx>(in_rows[k], cols);
+    for (std::size_t k = 0; k < NumInputs; ++k) {
+        auto extentIn = alpaka::Vec<Dim, Idx>(in_rows[k], cols);
 
         // Allocate input buffers
         // 1) Accelerator input buffers
-        aIn_bufs.push_back(alpaka::allocBuf<T, Idx>(devAcc, extent));
+        aIn_bufs.push_back(alpaka::allocBuf<T, Idx>(devAcc, extentIn));
 
         // 2) Host input buffers
-        hIn_bufs.push_back(alpaka::allocBuf<T, Idx>(devHost, extent));
+        hIn_bufs.push_back(alpaka::allocBuf<T, Idx>(devHost, extentIn));
 
         // Initial data transfer
         // 1) INPUT -> host buffer (safe via raw pointers)
@@ -94,24 +94,24 @@ int main() {
     }
 
     // Allocate output buffers
-    auto aOut = alpaka::allocBuf<T, Idx>(devAcc, extent_out);
-    auto hOut = alpaka::allocBuf<T, Idx>(devHost, extent_out);
+    auto aOut = alpaka::allocBuf<T, Idx>(devAcc, extentOut);
+    auto hOut = alpaka::allocBuf<T, Idx>(devHost, extentOut);
 
     alpaka::wait(queue);
 
     // Prepare kernel arguments
-    std::array<T const*, num_inputs> aIn_ptrs;
-    for (std::size_t k = 0; k < num_inputs; ++k) {
+    std::array<T const*, NumInputs> aIn_ptrs;
+    for (std::size_t k = 0; k < NumInputs; ++k) {
         aIn_ptrs[k] = alpaka::getPtrNative(aIn_bufs[k]);
     }
 
-    std::array<alpaka::Vec<Dim, Idx>, num_inputs> input_strides_vec;
-    for (std::size_t k = 0; k < num_inputs; ++k) {
+    std::array<alpaka::Vec<Dim, Idx>, NumInputs> input_strides_vec;
+    for (std::size_t k = 0; k < NumInputs; ++k) {
         input_strides_vec[k] = alpaka::Vec<Dim, Idx>(cols, 1);
     }
 
-    std::array<Idx, num_inputs> axis_sizes;
-    for (std::size_t k = 0; k < num_inputs; ++k) {
+    std::array<Idx, NumInputs> axis_sizes;
+    for (std::size_t k = 0; k < NumInputs; ++k) {
         axis_sizes[k] = in_rows[k];
     }
 
@@ -124,19 +124,19 @@ int main() {
 
     auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
         alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extent_out};
+        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
 
     // Launch kernel
     ConcatKernel kernel;
 
     alpaka::exec<Acc>(queue, workDiv, kernel, aIn_ptrs,
-                      alpaka::getPtrNative(aOut), input_strides_vec, axis_sizes,
-                      concat_axis, output_strides, extent_out);
+                      alpaka::getPtrNative(aOut), input_strides_vec,
+                      output_strides, extentOut, axis_sizes, ConcatAxis);
 
     alpaka::wait(queue);
 
     // Final data transfer: accelerator -> host
-    alpaka::memcpy(queue, hOut, aOut, extent_out);
+    alpaka::memcpy(queue, hOut, aOut);
     alpaka::wait(queue);
 
     // Print result

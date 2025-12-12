@@ -43,18 +43,19 @@ int main() {
     alpaka::Queue<Acc, alpaka::Blocking> queue{devAcc};
 
     // Allocate buffers
-    auto extent = alpaka::Vec<Dim, Idx>(cols, rows);
+    auto extentIn = alpaka::Vec<Dim, Idx>(rows, cols);
+    auto extentOut = alpaka::Vec<Dim, Idx>(cols, rows);
 
     // 1) Accelerator buffers
-    auto aIn = alpaka::allocBuf<T, Idx>(devAcc, extent);
-    auto aOut = alpaka::allocBuf<T, Idx>(devAcc, extent);
+    auto aIn = alpaka::allocBuf<T, Idx>(devAcc, extentIn);
+    auto aOut = alpaka::allocBuf<T, Idx>(devAcc, extentOut);
 
     // 2) Host buffers
     // Note that host and accelerator may coincide when using CPU backend,
     // still it's better to allocate buffers separately for portability and
     // because this ensures memory is pinned and not paged
-    auto hIn = alpaka::allocBuf<T, Idx>(devHost, extent);
-    auto hOut = alpaka::allocBuf<T, Idx>(devHost, extent);
+    auto hIn = alpaka::allocBuf<T, Idx>(devHost, extentIn);
+    auto hOut = alpaka::allocBuf<T, Idx>(devHost, extentOut);
 
     // Initial data transfer
     // 1) INPUT -> host buffer (safe via raw pointer)
@@ -68,9 +69,7 @@ int main() {
     alpaka::wait(queue);
 
     // Prepare kernel arguments
-    auto input_shape = alpaka::Vec<Dim, Idx>(rows, cols);
     auto input_strides = alpaka::Vec<Dim, Idx>(cols, 1);
-    auto output_shape = alpaka::Vec<Dim, Idx>(cols, rows);
     auto output_strides = alpaka::Vec<Dim, Idx>(rows, 1);
 
     // output axis i corresponds to input axis perm[i]
@@ -84,14 +83,14 @@ int main() {
 
     auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
         alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extent};
+        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
 
     // Launch kernel
     TransposeKernel kernel;
 
     alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
                       alpaka::getPtrNative(aOut), input_strides, output_strides,
-                      input_shape, output_shape, perm);
+                      extentOut, perm);
 
     alpaka::wait(queue);
 

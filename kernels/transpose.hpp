@@ -10,7 +10,6 @@ struct TransposeKernel {
     ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* input, T* output,
                                   alpaka::Vec<Dim, Idx> input_strides,
                                   alpaka::Vec<Dim, Idx> output_strides,
-                                  alpaka::Vec<Dim, Idx> input_shape,
                                   alpaka::Vec<Dim, Idx> output_shape,
                                   alpaka::Vec<Dim, Idx> perm) const {
         using DimAcc = alpaka::Dim<TAcc>;

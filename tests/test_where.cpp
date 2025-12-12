@@ -50,7 +50,7 @@ int main() {
     alpaka::Queue<Acc, alpaka::Blocking> queue{devAcc};
 
     // Allocate buffers
-    auto extent = alpaka::Vec<Dim, Idx>(cols, rows);
+    auto extent = alpaka::Vec<Dim, Idx>(rows, cols);
 
     // 1) Accelerator buffers
     auto aIn_X = alpaka::allocBuf<T, Idx>(devAcc, extent);
@@ -84,7 +84,6 @@ int main() {
     alpaka::wait(queue);
 
     // Prepare kernel arguments
-    auto output_shape = alpaka::Vec<Dim, Idx>(rows, cols);
     auto strides = alpaka::Vec<Dim, Idx>(cols, 1);
 
     // Work division: 2D mapping of threads to elements
@@ -101,8 +100,8 @@ int main() {
 
     alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn_Cond),
                       alpaka::getPtrNative(aIn_X), alpaka::getPtrNative(aIn_Y),
-                      alpaka::getPtrNative(aOut), output_shape, strides,
-                      strides, strides, strides);
+                      alpaka::getPtrNative(aOut), strides, strides, strides,
+                      strides, extent);
 
     alpaka::wait(queue);
 

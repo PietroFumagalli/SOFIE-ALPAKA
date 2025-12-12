@@ -43,7 +43,7 @@ struct TopKKernel {
                 Idx count = 0;
 
                 for (Idx j = 0; j < topk_axis_size; ++j) {
-                    Idx const curr = input_idx + (j * input_axis_stride);
+                    Idx const curr = input_idx + (j * input_topk_axis_stride);
                     T const val = input[curr];
 
                     if (count == K && val <= top_vals[K - 1]) continue;
@@ -65,7 +65,8 @@ struct TopKKernel {
                 }
 
                 for (Idx i = 0; i < K; ++i) {
-                    Idx const w_idx = output_idx + (i * output_axis_stride);
+                    Idx const w_idx =
+                        output_idx + (i * output_topk_axis_stride);
                     output[w_idx] =
                         (i < count) ? top_vals[i] : static_cast<T>(0);
                 }
@@ -74,19 +75,19 @@ struct TopKKernel {
             else {
                 Idx count = 0;
                 for (Idx j = 0; j < topk_axis_size; ++j) {
-                    Idx const curr = input_idx + (j * input_axis_stride);
+                    Idx const curr = input_idx + (j * input_topk_axis_stride);
                     T const val = input[curr];
 
                     if (count == K) {
-                        if (val <=
-                            output[output_idx + (K - 1) * output_axis_stride])
+                        if (val <= output[output_idx +
+                                          (K - 1) * output_topk_axis_stride])
                             continue;
                     }
 
                     Idx insert_pos = 0;
                     while (insert_pos < count) {
                         if (val > output[output_idx +
-                                         insert_pos * output_axis_stride])
+                                         insert_pos * output_topk_axis_stride])
                             break;
                         insert_pos++;
                     }
@@ -94,19 +95,19 @@ struct TopKKernel {
                     if (insert_pos < K) {
                         Idx const end_shift = (count < K) ? count : K - 1;
                         for (Idx s = end_shift; s > insert_pos; --s) {
-                            output[output_idx + s * output_axis_stride] =
+                            output[output_idx + s * output_topk_axis_stride] =
                                 output[output_idx +
-                                       (s - 1) * output_axis_stride];
+                                       (s - 1) * output_topk_axis_stride];
                         }
 
-                        output[output_idx + insert_pos * output_axis_stride] =
-                            val;
+                        output[output_idx +
+                               insert_pos * output_topk_axis_stride] = val;
                         if (count < K) count++;
                     }
                 }
 
                 for (Idx i = count; i < K; ++i) {
-                    output[output_idx + i * output_axis_stride] =
+                    output[output_idx + i * output_topk_axis_stride] =
                         static_cast<T>(0);
                 }
             }
