@@ -2,21 +2,22 @@ cmake_minimum_required(VERSION 3.21)
 project(AlpakaTest LANGUAGES CXX CUDA)
 
 # --- User-configurable options ---
-set(CUDA_BASE "/usr/local/cuda" CACHE PATH "CUDA base path")
+set(CUDA_BASE "/usr/local/cuda-12.6" CACHE PATH "CUDA base path")
 set(TBB_BASE "/usr" CACHE PATH "TBB base path")
-set(ALPAKA_BASE "$ENV{HOME}/src/alpaka-group/alpaka" CACHE PATH "Alpaka base path")
+set(ALPAKA_BASE "../../../alpaka" CACHE PATH "Alpaka base path")
+set(CMAKE_CUDA_COMPILER "/usr/local/cuda-13.1/bin/nvcc" CACHE PATH "Cuda compiler path")
 
 find_package(ROOT COMPONENTS)
 # Add ROOT compile options
 include(${ROOT_USE_FILE})
 
 # Path to SOFIE headers (only SOFIE_common.hxx needed)
-set(SOFIE_INCLUDE "/SOFIE/install/include")
+set(SOFIE_INCLUDE "../../../SOFIE/install/include")
 
 # --- Compiler flags ---
 set(CXXFLAGS -O2 -g -DALPAKA_HAS_STD_ATOMIC_REF)
 set(CXX_HOST_FLAGS -fPIC -pthread)
-set(CUDA_ARCH "sm_86")
+set(CUDA_ARCH "sm_75")
 set(CXX_CUDA_FLAGS -arch=${CUDA_ARCH} -Wno-deprecated-gpu-targets --extended-lambda --expt-relaxed-constexpr)
 
 # --- Executable ---
