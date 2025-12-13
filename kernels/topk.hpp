@@ -5,16 +5,17 @@
 
 namespace alpaka_kernels {
 
-// K: the exact number of elements to select
+// K: the number of elements to select along the specified axis
 // MaxRegisters: threshold where we switch from registers to global memory
-template <int K, int MaxRegisters = 64>
+template <std::size_t K, std::size_t MaxRegisters = 64>
 struct TopKKernel {
     template <typename TAcc, typename T, typename Dim, typename Idx>
     ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* input, T* output,
                                   alpaka::Vec<Dim, Idx> input_strides,
                                   alpaka::Vec<Dim, Idx> output_strides,
                                   alpaka::Vec<Dim, Idx> output_shape,
-                                  Idx topk_axis, Idx topk_axis_size) const {
+                                  Idx topk_axis, Idx topk_axis_size,
+                                  T padding_value) const {
         using DimAcc = alpaka::Dim<TAcc>;
         static_assert(DimAcc::value == Dim::value,
                       "Accelerator and data dimensions must match!");
@@ -25,13 +26,13 @@ struct TopKKernel {
         auto elements = alpaka::uniformElementsND(acc, output_shape);
 
         for (auto const& idx : elements) {
-            Idx input_idx = 0;
-            Idx output_idx = 0;
+            Idx input_base_idx = 0;
+            Idx output_base_idx = 0;
 
             for (std::size_t d = 0; d < D; ++d) {
                 Idx const coord = idx[d];
-                input_idx += coord * input_strides[d];
-                output_idx += coord * output_strides[d];
+                input_base_idx += coord * input_strides[d];
+                output_base_idx += coord * output_strides[d];
             }
 
             Idx const input_topk_axis_stride = input_strides[topk_axis];
@@ -43,8 +44,9 @@ struct TopKKernel {
                 Idx count = 0;
 
                 for (Idx j = 0; j < topk_axis_size; ++j) {
-                    Idx const curr = input_idx + (j * input_topk_axis_stride);
-                    T const val = input[curr];
+                    Idx const input_idx =
+                        input_base_idx + (j * input_topk_axis_stride);
+                    T const val = input[input_idx];
 
                     if (count == K && val <= top_vals[K - 1]) continue;
 
@@ -54,8 +56,8 @@ struct TopKKernel {
                     }
 
                     if (insert_pos < K) {
-                        Idx const end_shift = (count < K) ? count : K - 1;
-                        for (Idx s = end_shift; s > insert_pos; --s) {
+                        Idx const last = std::min(count, K - 1);
+                        for (Idx s = last; s > insert_pos; --s) {
                             top_vals[s] = top_vals[s - 1];
                         }
 
@@ -65,50 +67,51 @@ struct TopKKernel {
                 }
 
                 for (Idx i = 0; i < K; ++i) {
-                    Idx const w_idx =
-                        output_idx + (i * output_topk_axis_stride);
-                    output[w_idx] =
-                        (i < count) ? top_vals[i] : static_cast<T>(0);
+                    Idx const output_idx =
+                        output_base_idx + (i * output_topk_axis_stride);
+                    output[output_idx] =
+                        (i < count) ? top_vals[i] : padding_value;
                 }
             }
             // Use global memory
             else {
                 Idx count = 0;
                 for (Idx j = 0; j < topk_axis_size; ++j) {
-                    Idx const curr = input_idx + (j * input_topk_axis_stride);
-                    T const val = input[curr];
+                    Idx const input_idx =
+                        input_base_idx + (j * input_topk_axis_stride);
+                    T const val = input[input_idx];
 
-                    if (count == K) {
-                        if (val <= output[output_idx +
-                                          (K - 1) * output_topk_axis_stride])
-                            continue;
-                    }
+                    if (count == K &&
+                        val <= output[output_base_idx +
+                                      (K - 1) * output_topk_axis_stride])
+                        continue;
 
                     Idx insert_pos = 0;
                     while (insert_pos < count) {
-                        if (val > output[output_idx +
+                        if (val > output[output_base_idx +
                                          insert_pos * output_topk_axis_stride])
                             break;
                         insert_pos++;
                     }
 
                     if (insert_pos < K) {
-                        Idx const end_shift = (count < K) ? count : K - 1;
-                        for (Idx s = end_shift; s > insert_pos; --s) {
-                            output[output_idx + s * output_topk_axis_stride] =
-                                output[output_idx +
+                        Idx const last = std::min(count, K - 1);
+                        for (Idx s = last; s > insert_pos; --s) {
+                            output[output_base_idx +
+                                   s * output_topk_axis_stride] =
+                                output[output_base_idx +
                                        (s - 1) * output_topk_axis_stride];
                         }
 
-                        output[output_idx +
+                        output[output_base_idx +
                                insert_pos * output_topk_axis_stride] = val;
                         if (count < K) count++;
                     }
                 }
 
                 for (Idx i = count; i < K; ++i) {
-                    output[output_idx + i * output_topk_axis_stride] =
-                        static_cast<T>(0);
+                    output[output_base_idx + i * output_topk_axis_stride] =
+                        padding_value;
                 }
             }
         }

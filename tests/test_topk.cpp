@@ -70,12 +70,14 @@ int main() {
     alpaka::wait(queue);
 
     // Prepare kernel arguments
+    T const padding_value = -1.0;
     auto input_strides = alpaka::Vec<Dim, Idx>(cols, 1);
     auto output_strides = alpaka::Vec<Dim, Idx>(K, 1);
 
     // Work division: 2D mapping of threads to elements
     auto grid_elements = extentOut;
     grid_elements[TopkAxis] = 1;
+
     alpaka::Vec<Dim, Idx> threadsPerBlock;
     alpaka::Vec<Dim, Idx> blocksPerGrid;
     Idx const TARGET_BLOCK_SIZE = 16;
@@ -100,7 +102,8 @@ int main() {
 
     alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
                       alpaka::getPtrNative(aOut), input_strides, output_strides,
-                      grid_elements, TopkAxis, extentIn[TopkAxis]);
+                      grid_elements, TopkAxis, extentIn[TopkAxis],
+                      padding_value);
 
     alpaka::wait(queue);
 
@@ -114,10 +117,10 @@ int main() {
     {
         T* pHost = alpaka::getPtrNative(hOut);
         for (std::size_t i = 0; i < rows; ++i) {
-            std::array<T, K> top_vals;
+            std::array<T, K> top_vals = {padding_value};
             std::size_t count = 0;
 
-            for (Idx j = 0; j < extentIn[TopkAxis]; ++j) {
+            for (std::size_t j = 0; j < extentIn[TopkAxis]; ++j) {
                 T const val = INPUT[i * cols + j];
                 if (count == K && val <= top_vals[K - 1]) continue;
 
@@ -128,8 +131,8 @@ int main() {
                 }
 
                 if (insert_pos < K) {
-                    Idx const end_shift = (count < K) ? count : K - 1;
-                    for (Idx s = end_shift; s > insert_pos; --s) {
+                    std::size_t const last = std::min(count, K - 1);
+                    for (std::size_t s = last; s > insert_pos; --s) {
                         top_vals[s] = top_vals[s - 1];
                     }
 
@@ -139,8 +142,8 @@ int main() {
             }
 
             for (std::size_t j = 0; j < K; ++j) {
-                T valOut = pHost[i * K + j];
-                T valIn = top_vals[j];
+                T const valOut = pHost[i * K + j];
+                T const valIn = top_vals[j];
 
                 if (valIn != valOut) {
                     std::cerr << "Failed!\n";
