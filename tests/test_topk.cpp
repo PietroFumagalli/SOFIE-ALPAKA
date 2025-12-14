@@ -86,24 +86,19 @@ int main() {
         if (d == TopkAxis) {
             threadsPerBlock[d] = 1;
             blocksPerGrid[d] = 1;
-        }
-        else {
+        } else {
             threadsPerBlock[d] = TARGET_BLOCK_SIZE;
-            blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) /
-                               threadsPerBlock[d];
+            blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) / threadsPerBlock[d];
         }
     }
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
-        blocksPerGrid, threadsPerBlock, grid_elements};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{blocksPerGrid, threadsPerBlock, grid_elements};
 
     // Launch kernel
     TopKKernel<K, MaxRegisters> kernel;
 
-    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
-                      alpaka::getPtrNative(aOut), input_strides, output_strides,
-                      grid_elements, TopkAxis, extentIn[TopkAxis],
-                      padding_value);
+    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn), alpaka::getPtrNative(aOut), input_strides,
+                      output_strides, grid_elements, TopkAxis, extentIn[TopkAxis], padding_value);
 
     alpaka::wait(queue);
 

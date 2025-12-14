@@ -41,8 +41,7 @@ int main() {
 
     for (auto& val : INPUT_X) val = distrib_real(gen) * 100.0;
     for (auto& val : INPUT_Y) val = distrib_real(gen);
-    for (std::size_t i = 0; i < numElems; ++i)
-        INPUT_COND[i] = distrib_bool(gen);
+    for (std::size_t i = 0; i < numElems; ++i) INPUT_COND[i] = distrib_bool(gen);
 
     // Setup the accelerator, host and queue
     auto devAcc = alpaka::getDevByIdx(PlatAcc{}, 0u);
@@ -91,17 +90,15 @@ int main() {
     const std::size_t blocksX = (cols + threadsX - 1) / threadsX;
     const std::size_t blocksY = (rows + threadsY - 1) / threadsY;
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
-        alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extent};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{alpaka::Vec<Dim, Idx>(blocksX, blocksY),
+                                                          alpaka::Vec<Dim, Idx>(threadsX, threadsY), extent};
 
     // Launch kernel
     WhereKernel kernel;
 
-    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn_Cond),
-                      alpaka::getPtrNative(aIn_X), alpaka::getPtrNative(aIn_Y),
-                      alpaka::getPtrNative(aOut), strides, strides, strides,
-                      strides, extent);
+    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn_Cond), alpaka::getPtrNative(aIn_X),
+                      alpaka::getPtrNative(aIn_Y), alpaka::getPtrNative(aOut), strides, strides, strides, strides,
+                      extent);
 
     alpaka::wait(queue);
 
@@ -117,8 +114,7 @@ int main() {
         for (std::size_t i = 0; i < rows; ++i) {
             for (std::size_t j = 0; j < cols; ++j) {
                 T valOut = pHost[i * cols + j];
-                T valIn = INPUT_COND[i * cols + j] ? INPUT_X[i * cols + j]
-                                                   : INPUT_Y[i * cols + j];
+                T valIn = INPUT_COND[i * cols + j] ? INPUT_X[i * cols + j] : INPUT_Y[i * cols + j];
 
                 if (valIn != valOut) {
                     std::cerr << "Failed!\n";

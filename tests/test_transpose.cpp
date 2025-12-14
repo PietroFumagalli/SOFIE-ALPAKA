@@ -81,16 +81,14 @@ int main() {
     const std::size_t blocksX = (cols + threadsX - 1) / threadsX;
     const std::size_t blocksY = (rows + threadsY - 1) / threadsY;
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
-        alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{alpaka::Vec<Dim, Idx>(blocksX, blocksY),
+                                                          alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
 
     // Launch kernel
     TransposeKernel kernel;
 
-    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
-                      alpaka::getPtrNative(aOut), input_strides, output_strides,
-                      extentOut, perm);
+    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn), alpaka::getPtrNative(aOut), input_strides,
+                      output_strides, extentOut, perm);
 
     alpaka::wait(queue);
 
