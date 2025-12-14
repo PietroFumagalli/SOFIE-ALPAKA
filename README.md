@@ -20,25 +20,27 @@ Clone the repository with all the submodules (dependencies):
 git clone https://github.com/Saransh-cpp/SOFIE-ALPAKA --recursive
 ```
 
+### Building kernels and tests
+
 To build all kernels in `bin/`:
 
 ```
 make all ALPAKA_ACCELERATOR_FLAG=enable_an_alpaka_accelerator
 ```
 
-where `ALPAKA_ACCELERATOR_FLAG` defaults to `ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED` (enables the CPU threaded backend)
+where `ALPAKA_ACCELERATOR_FLAG` defaults to `ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED` (enables the CPU threaded backend).
 
-To build (in `bin/`) and run all kernel tests:
+### Running tests
 
-```
-make test ALPAKA_DIR=/path/to/alpaka/headers CPLUS_INCLUDE_PATH=/path/to/any/other/headers ALPAKA_ACCELERATOR_FLAG=enable_an_alpaka_accelerator
-```
-
-To clean the outputs:
+To run all kernel tests (and build if not built before):
 
 ```
-make clean
+make test ALPAKA_ACCELERATOR_FLAG=enable_an_alpaka_accelerator
 ```
+
+where `ALPAKA_ACCELERATOR_FLAG` defaults to `ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED` (enables the CPU threaded backend).
+
+### Running integration tests
 
 To run SOFIE integration tests:
 
