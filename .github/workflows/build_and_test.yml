@@ -26,6 +26,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install libboost-all-dev
+
       - name: Build kernels and tests for the CPU backend
         run: make all ALPAKA_ACCELERATOR_FLAG=ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED -j10
 

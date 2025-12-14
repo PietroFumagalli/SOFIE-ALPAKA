@@ -8,7 +8,9 @@ Submission for CS-433: Machine Learning; hopefully, will not stay just as a rand
 
 ## Dependencies
 
-- `Alpaka` (`v2.1.0`): for heterogenous kernels; present as a git submodule in `external/`
+- `Alpaka` (`1.2.0`): for heterogenous kernels; present as a git submodule in `external/`
+- `Boost` (`libboost-all-dev` on Debian): for Alpaka
+- `cmake` and `make`: for building and testing the project
 
 ## Usage
 
