@@ -3,7 +3,7 @@ CXXFLAGS ?= -std=c++17 -O2 -Wall
 
 KERNEL_DIR ?= kernels
 TEST_DIR   ?= tests
-ALPAKA_DIR ?= $(CURDIR)/../alpaka/include
+ALPAKA_DIR ?= $(CURDIR)/include
 BIN_DIR    ?= bin
 
 KERNEL_HEADERS := $(wildcard $(KERNEL_DIR)/*.hpp)
