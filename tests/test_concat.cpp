@@ -100,16 +100,17 @@ int main() {
         for (std::size_t i = 0; i < INPUT[k].size(); ++i) pHost[i] = INPUT[k][i];
 
         // 2) host -> accelerator
-
+        {
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
-        // For GPU, use cudaMemcpy directly
-        T* pAIn = alpaka::getPtrNative(aIn_bufs.back());
-        T* pHIn = alpaka::getPtrNative(hIn_bufs.back());
-        cudaMemcpy(pAIn, pHIn, numElems * sizeof(T), cudaMemcpyHostToDevice);
+            // For GPU, use cudaMemcpy directly
+            T* pAIn = alpaka::getPtrNative(aIn_bufs.back());
+            T* pHIn = alpaka::getPtrNative(hIn_bufs.back());
+            cudaMemcpy(pAIn, pHIn, numElems * sizeof(T), cudaMemcpyHostToDevice);
 #else
-        // For CPU, use memcpy
-        alpaka::memcpy(queue, aIn_bufs.back(), hIn_bufs.back());
+            // For CPU, use memcpy
+            alpaka::memcpy(queue, aIn_bufs.back(), hIn_bufs.back());
 #endif
+        }
     }
 
     // Allocate output buffers
@@ -150,14 +151,16 @@ int main() {
 
     alpaka::wait(queue);
 
-    // Final data transfer: accelerator -> host
+    {
+        // Final data transfer: accelerator -> host
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
-    T* pAOut = alpaka::getPtrNative(aOut);
-    T* pHOut = alpaka::getPtrNative(hOut);
-    cudaMemcpy(pHOut, pAOut, numElems * sizeof(T), cudaMemcpyDeviceToHost);
+        T* pAOut = alpaka::getPtrNative(aOut);
+        T* pHOut = alpaka::getPtrNative(hOut);
+        cudaMemcpy(pHOut, pAOut, numElems * sizeof(T), cudaMemcpyDeviceToHost);
 #else
-    alpaka::memcpy(queue, hOut, aOut);
+        alpaka::memcpy(queue, hOut, aOut);
 #endif
+    }
 
     // Print result
     std::cout << "Output is of shape " << out_rows << "x" << out_cols << "\n";
