@@ -1,13 +1,28 @@
 import subprocess
 import sys
 import os
+import re
+
+# Configuration
+EXECUTABLE_PATHS = [
+    "./bin/test_transpose.out",
+    "./bin/test_concat.out",
+    "./bin/test_where.out",
+    "./bin/test_topk.out"
+]
+
+BENCHMARK_SIZES = [
+    512,
+    1024,
+    # 2048 # Be careful
+]
 
 def build_kernel_tests():
     """
     Calls the Makefile to build the kernel tests.
     Returns True if successful, False otherwise.
     """
-    print("Building project with Make...")
+    print("Building kernel tests with Make...")
     try:
         # Check if Makefile exists
         if not os.path.exists("Makefile"):
@@ -15,17 +30,16 @@ def build_kernel_tests():
             return False
 
         # Run 'make'.
-        # capture_output=False lets the user see the compiler output in real-time
         subprocess.run(["make"], check=True)
         
-        print("✅ Build successful\n")
+        print("Build successful\n")
         return True
         
     except subprocess.CalledProcessError:
-        print("❌ Build failed. Please fix C++ errors before running benchmarks.")
+        print("Build failed. Please fix C++ errors before running benchmarks")
         return False
     except FileNotFoundError:
-        print("❌ Error: 'make' command not found. Is it installed?")
+        print("Error: 'make' command not found. Is it installed?")
         return False
 
 def run_benchmark(executable_path, args):
@@ -33,36 +47,81 @@ def run_benchmark(executable_path, args):
     Runs the compiled executable with arguments.
     """
     if not os.path.exists(executable_path):
-        print(f"❌ Error: Executable '{executable_path}' not found after build.")
+        print(f"Error: Executable '{executable_path}' not found after build")
         return
 
-    print(f"🚀 Running {executable_path} with args: {args}...")
+    N = args[0]
+
     try:
         # Construct the command
         cmd = [executable_path] + [str(a) for a in args]
         
         # Run and capture output for parsing
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        
-        print("--- Output ---")
-        print(result.stdout)
-        
-        # TODO: Add your parsing logic here (regex or string split) to get the time
+        output = result.stdout
+
+        kernel_match = re.search(r"TIME_KERNEL_MS:\s+(\d+\.?\d*)", output)
+        total_match = re.search(r"TIME_TOTAL_MS:\s+(\d+\.?\d*)", output)
+
+        if kernel_match and total_match:
+            return float(kernel_match.group(1)), float(total_match.group(1))
+        else:
+            print(f"Output parsing failed for size {N}x{N}.")
+            print("--- Raw Output ---")
+            print(output)
+            print("------------------\n")
+            return None
         
     except subprocess.CalledProcessError as e:
-        print(f"❌ Execution failed with return code {e.returncode}")
+        print(f"Execution failed with return code {e.returncode}")
         print("Stderr:", e.stderr)
 
-if __name__ == "__main__":
+def main():
     # Build Phase
     if not build_kernel_tests():
         sys.exit(1)
 
+    print("Bandwidth calculated based on kernel execution time only,")
+    print("if the result is 0 you're probably using the CPU itself as the accelerator")
+
     # Benchmark Phase
-    # Adjust this path to match where your Makefile outputs the binary
-    binary_path = "./build/alpaka_test_kernel" 
-    
-    input_sizes = [1024, 2048, 4096]
-    
-    for size in input_sizes:
-        run_benchmark(binary_path, [size])
+    for EXECUTABLE_PATH in EXECUTABLE_PATHS:
+        print(f"Benchmarking {EXECUTABLE_PATH}")
+        print(f"{'SIZE (NxN)':<12} | {'KERNEL (ms)':<12} | {'TOTAL (ms)':<12} | {'BANDWIDTH (GB/s)*':<18}")
+        print("-" * 65)
+
+        for N in BENCHMARK_SIZES:
+        
+            res = run_benchmark(EXECUTABLE_PATH, [N])
+        
+            if res:
+                k_ms, t_ms = res
+            
+                # Bandwidth Calculation (approximate)
+                # Transpose reads N*N floats and writes N*N floats
+                # Total Bytes = 2 * N * N * 4 bytes (for float32)
+                total_bytes = 0.0
+
+                if EXECUTABLE_PATH == "./bin/test_transpose.out":
+                    total_bytes = 8 * N * N
+                elif EXECUTABLE_PATH == "./bin/test_concat.out":
+                    total_bytes = 24 * N * N
+                elif EXECUTABLE_PATH == "./bin/test_where.out":
+                    total_bytes = 13 * N * N 
+                else:
+                    k = 4
+                    total_bytes = 4 * N * N + 4 * N * k
+            
+                # GB/s = (Bytes / 1e9) / (Seconds)
+                # Time is in ms, so divide by 1000.0
+                if k_ms > 0:
+                    bandwidth_gbs = (total_bytes / 1e9) / (k_ms / 1000.0)
+                else:
+                    bandwidth_gbs = 0.0
+
+                print(f"{N:<12} | {k_ms:<12.4f} | {t_ms:<12.4f} | {bandwidth_gbs:<18.2f}")
+
+        print("-" * 65)
+
+if __name__ == "__main__":
+    main()
