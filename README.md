@@ -47,19 +47,12 @@ cmake --build build
 
 where the following flags can be configured by the user:
 - `CUDA_BASE` (default: "/usr/local/cuda-13.1"): CUDA base path
-- `TBB_BASE` (default: "/usr"): TBB base path
 - `ALPAKA_BASE` (default: "external/alpaka"): Alpaka base path
 - `CUDA_ARCH` (default: "sm_75"): CUDA architecture
 - `CMAKE_CUDA_COMPILER` (default: "/usr/local/cuda-13.1/bin/nvcc"): Cuda compiler path
 
+To run the tests, simply execute `test_*` executables produced in `build/`.
+
 ### Running integration tests on an NVIDIA GPU
 
-To run SOFIE integration tests:
-
-```
-cd tests/sofie_integration
-cmake -S. -Bbuild
-cmake --build build
-```
-
-with the same configurable flags listed in the section above.
+TODO

@@ -12,13 +12,13 @@ using Idx = std::size_t;
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
 using DevAcc = alpaka::DevCudaRt;
-using QueueAcc = alpaka::Queue<DevAcc, alpaka::NonBlocking>;
 using Acc = alpaka::AccGpuCudaRt<Dim, Idx>;
+using QueueAcc = alpaka::Queue<Acc, alpaka::NonBlocking>;
 
 #elif defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
 using DevAcc = alpaka::DevCpu;
-using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
 using Acc = alpaka::AccCpuThreads<Dim, Idx>;
+using QueueAcc = alpaka::Queue<Acc, alpaka::Blocking>;
 
 #else
 #error Please define a single one of ALPAKA_ACC_GPU_CUDA_ENABLED, ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED
@@ -49,12 +49,12 @@ int main() {
     std::vector<T> INPUT(numElems);
     for (auto& val : INPUT) val = distrib_real(gen);
 
-    // Setup the accelerator, host and queue
-    auto devAcc = alpaka::getDevByIdx(PlatAcc{}, 0u);
-    auto devHost = alpaka::getDevByIdx(PlatHost{}, 0u);
-    alpaka::Queue<Acc, alpaka::Blocking> queue{devAcc};
+    // Setup devices and queue
+    auto devAcc = alpaka::getDevByIdx(PlatAcc{}, 0);
+    auto devHost = alpaka::getDevByIdx(PlatHost{}, 0);
+    QueueAcc queue{devAcc};
 
-    // Allocate buffers
+    // Create extents
     auto extentIn = alpaka::Vec<Dim, Idx>(rows, cols);
     auto extentOut = alpaka::Vec<Dim, Idx>(cols, rows);
 
@@ -77,8 +77,18 @@ int main() {
     }
 
     // 2) host -> accelerator
-    alpaka::memcpy(queue, aIn, hIn);
-    alpaka::wait(queue);
+    {
+        T* pAIn = alpaka::getPtrNative(aIn);
+        T* pHIn = alpaka::getPtrNative(hIn);
+
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
+        // For GPU, use cudaMemcpy directly
+        cudaMemcpy(pAIn, pHIn, numElems * sizeof(T), cudaMemcpyHostToDevice);
+#else
+        // For CPU, use memcpy
+        std::memcpy(pAIn, pHIn, numElems * sizeof(T));
+#endif
+    }
 
     // Prepare kernel arguments
     auto input_strides = alpaka::Vec<Dim, Idx>(cols, 1);
@@ -93,8 +103,8 @@ int main() {
     const std::size_t blocksX = (cols + threadsX - 1) / threadsX;
     const std::size_t blocksY = (rows + threadsY - 1) / threadsY;
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-                                                          alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{alpaka::Vec<Dim, Idx>(blocksY, blocksX),
+                                                          alpaka::Vec<Dim, Idx>(threadsY, threadsX), extentOut};
 
     // Launch kernel
     TransposeKernel kernel;
@@ -104,11 +114,19 @@ int main() {
 
     alpaka::wait(queue);
 
-    // Final data transfer: accelerator -> host
-    alpaka::memcpy(queue, hOut, aOut);
-    alpaka::wait(queue);
+    // Copy device -> host using 1D memcpy
+    {
+        T* pAOut = alpaka::getPtrNative(aOut);
+        T* pHOut = alpaka::getPtrNative(hOut);
 
-    // Print result
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
+        cudaMemcpy(pHOut, pAOut, numElems * sizeof(T), cudaMemcpyDeviceToHost);
+#else
+        std::memcpy(pHOut, pAOut, numElems * sizeof(T));
+#endif
+    }
+
+    // Check results
     std::cout << "Output is of shape " << cols << "x" << rows << "\n";
 
     {

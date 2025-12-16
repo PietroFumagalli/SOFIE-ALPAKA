@@ -8,7 +8,6 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
 # --- User-configurable options ---
 set(CUDA_BASE "/usr/local/cuda-13.1" CACHE PATH "CUDA base path")
-set(TBB_BASE "/usr" CACHE PATH "TBB base path")
 set(ALPAKA_BASE "external/alpaka" CACHE PATH "Alpaka base path")
 
 # --- Compiler flags ---
@@ -46,14 +45,6 @@ target_include_directories(test_transpose PRIVATE
 
 target_link_directories(test_transpose PRIVATE ${CUDA_BASE}/lib64)
 
-target_link_libraries(test_transpose
-    PRIVATE
-        cublas
-        cublasLt
-        cudart
-        nvidia-ml
-)
-
 add_executable(test_concat tests/test_concat.cpp)
 set_source_files_properties(tests/test_concat.cpp PROPERTIES LANGUAGE CUDA)
 enable_language(CUDA)
@@ -80,14 +71,6 @@ target_include_directories(test_concat PRIVATE
 )
 
 target_link_directories(test_concat PRIVATE ${CUDA_BASE}/lib64)
-
-target_link_libraries(test_concat
-    PRIVATE
-        cublas
-        cublasLt
-        cudart
-        nvidia-ml
-)
 
 add_executable(test_where tests/test_where.cpp)
 set_source_files_properties(tests/test_where.cpp PROPERTIES LANGUAGE CUDA)
@@ -116,14 +99,6 @@ target_include_directories(test_where PRIVATE
 
 target_link_directories(test_where PRIVATE ${CUDA_BASE}/lib64)
 
-target_link_libraries(test_where
-    PRIVATE
-        cublas
-        cublasLt
-        cudart
-        nvidia-ml
-)
-
 add_executable(test_topk tests/test_topk.cpp)
 set_source_files_properties(tests/test_topk.cpp PROPERTIES LANGUAGE CUDA)
 enable_language(CUDA)
@@ -150,17 +125,3 @@ target_include_directories(test_topk PRIVATE
 )
 
 target_link_directories(test_topk PRIVATE ${CUDA_BASE}/lib64)
-
-target_link_libraries(test_topk
-    PRIVATE
-        cublas
-        cublasLt
-        cudart
-        nvidia-ml
-)
-
-# Optional clean
-add_custom_target(clean-all
-  COMMAND ${CMAKE_COMMAND} -E rm -f test_transpose *.d *.o *.so
-  COMMENT "Cleaning all generated files"
-)
