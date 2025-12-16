@@ -54,8 +54,7 @@ int main(int argc, char* argv[]) {
         rows = std::atoi(argv[1]);
         cols = rows;
         std::cout << "Using input dimensions " << rows << "x" << cols << "\n";
-    }
-    else {
+    } else {
         std::cout << "Using random dimensions " << rows << "x" << cols << "\n";
     }
 
@@ -98,16 +97,13 @@ int main(int argc, char* argv[]) {
         if (d == TopkAxis) {
             threadsPerBlock[d] = 1;
             blocksPerGrid[d] = 1;
-        }
-        else {
+        } else {
             threadsPerBlock[d] = TARGET_BLOCK_SIZE;
-            blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) /
-                               threadsPerBlock[d];
+            blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) / threadsPerBlock[d];
         }
     }
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
-        blocksPerGrid, threadsPerBlock, grid_elements};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{blocksPerGrid, threadsPerBlock, grid_elements};
 
     // Initial data transfer
     // 1) INPUT -> host buffer (safe via raw pointer)
@@ -126,10 +122,8 @@ int main(int argc, char* argv[]) {
 
     auto start_kernel = now();
 
-    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
-                      alpaka::getPtrNative(aOut), input_strides, output_strides,
-                      grid_elements, TopkAxis, extentIn[TopkAxis],
-                      padding_value);
+    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn), alpaka::getPtrNative(aOut), input_strides,
+                      output_strides, grid_elements, TopkAxis, extentIn[TopkAxis], padding_value);
 
     alpaka::wait(queue);
     auto end_kernel = now();
@@ -183,10 +177,8 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Correct!\n";
 
-    std::chrono::duration<double, std::milli> kernel_ms =
-        end_kernel - start_kernel;
-    std::chrono::duration<double, std::milli> total_ms =
-        end_total - start_total;
+    std::chrono::duration<double, std::milli> kernel_ms = end_kernel - start_kernel;
+    std::chrono::duration<double, std::milli> total_ms = end_total - start_total;
 
     std::cout << "TIME_KERNEL_MS: " << kernel_ms.count() << std::endl;
     std::cout << "TIME_TOTAL_MS: " << total_ms.count() << std::endl;

@@ -59,8 +59,7 @@ int main(int argc, char* argv[]) {
             val = cols;
             total_rows += val;
         }
-    }
-    else {
+    } else {
         std::cout << "Using random dimensions ";
         for (auto& val : in_rows) {
             val = distrib_int(gen);
@@ -69,8 +68,7 @@ int main(int argc, char* argv[]) {
     }
 
     for (std::size_t k = 0; k < NumInputs; ++k)
-        std::cout << in_rows[k] << "x" << cols
-                  << ((k < NumInputs - 1) ? ", " : "\n");
+        std::cout << in_rows[k] << "x" << cols << ((k < NumInputs - 1) ? ", " : "\n");
 
     std::array<std::vector<T>, NumInputs> INPUT;
     for (std::size_t k = 0; k < NumInputs; ++k) {
@@ -84,10 +82,8 @@ int main(int argc, char* argv[]) {
     alpaka::Queue<Acc, alpaka::Blocking> queue{devAcc};
 
     // Allocate buffers
-    using BufAcc =
-        decltype(alpaka::allocBuf<T, Idx>(devAcc, alpaka::Vec<Dim, Idx>{}));
-    using BufHost =
-        decltype(alpaka::allocBuf<T, Idx>(devHost, alpaka::Vec<Dim, Idx>{}));
+    using BufAcc = decltype(alpaka::allocBuf<T, Idx>(devAcc, alpaka::Vec<Dim, Idx>{}));
+    using BufHost = decltype(alpaka::allocBuf<T, Idx>(devHost, alpaka::Vec<Dim, Idx>{}));
 
     std::vector<BufAcc> aIn_bufs;
     aIn_bufs.reserve(NumInputs);
@@ -111,8 +107,7 @@ int main(int argc, char* argv[]) {
 
         // INPUT to host buffer data transfer (safe via raw pointers)
         T* pHost = alpaka::getPtrNative(hIn_bufs.back());
-        for (std::size_t i = 0; i < INPUT[k].size(); ++i)
-            pHost[i] = INPUT[k][i];
+        for (std::size_t i = 0; i < INPUT[k].size(); ++i) pHost[i] = INPUT[k][i];
     }
 
     // Allocate output buffers
@@ -142,9 +137,8 @@ int main(int argc, char* argv[]) {
     const std::size_t blocksX = (out_rows + threadsX - 1) / threadsX;
     const std::size_t blocksY = (out_cols + threadsY - 1) / threadsY;
 
-    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
-        alpaka::Vec<Dim, Idx>(blocksX, blocksY),
-        alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
+    auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{alpaka::Vec<Dim, Idx>(blocksX, blocksY),
+                                                          alpaka::Vec<Dim, Idx>(threadsX, threadsY), extentOut};
 
     // Host to accelerator data transfer
     auto start_total = now();
@@ -160,9 +154,8 @@ int main(int argc, char* argv[]) {
 
     auto start_kernel = now();
 
-    alpaka::exec<Acc>(queue, workDiv, kernel, aIn_ptrs,
-                      alpaka::getPtrNative(aOut), input_strides_vec,
-                      output_strides, extentOut, axis_sizes, ConcatAxis);
+    alpaka::exec<Acc>(queue, workDiv, kernel, aIn_ptrs, alpaka::getPtrNative(aOut), input_strides_vec, output_strides,
+                      extentOut, axis_sizes, ConcatAxis);
 
     alpaka::wait(queue);
     auto end_kernel = now();
@@ -176,8 +169,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Output is of shape " << out_rows << "x" << out_cols << "\n";
 
     std::vector<T> expected;
-    for (const auto& vec : INPUT)
-        expected.insert(expected.end(), vec.begin(), vec.end());
+    for (const auto& vec : INPUT) expected.insert(expected.end(), vec.begin(), vec.end());
 
     {
         T* pHost = alpaka::getPtrNative(hOut);
@@ -191,10 +183,8 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Correct!\n";
 
-    std::chrono::duration<double, std::milli> kernel_ms =
-        end_kernel - start_kernel;
-    std::chrono::duration<double, std::milli> total_ms =
-        end_total - start_total;
+    std::chrono::duration<double, std::milli> kernel_ms = end_kernel - start_kernel;
+    std::chrono::duration<double, std::milli> total_ms = end_total - start_total;
 
     std::cout << "TIME_KERNEL_MS: " << kernel_ms.count() << std::endl;
     std::cout << "TIME_TOTAL_MS: " << total_ms.count() << std::endl;
