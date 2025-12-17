@@ -124,8 +124,10 @@ int main(int argc, char* argv[]) {
             if (limitBlocks) {
                 blocksPerGrid[d] = std::min(grid_elements[d], std::size_t(64));
             }
-            blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) /
-                               threadsPerBlock[d];
+            else {
+                blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) /
+                                   threadsPerBlock[d];
+            }
         }
     }
 

@@ -32,10 +32,10 @@ def build_kernel_tests():
 
         # Run 'make'.
         subprocess.run(["make"], check=True)
-        
+
         print("Build successful\n")
         return True
-        
+
     except subprocess.CalledProcessError:
         print("Build failed. Please fix C++ errors before running benchmarks")
         return False
@@ -56,7 +56,7 @@ def run_benchmark(executable_path, args):
     try:
         # Construct the command
         cmd = [executable_path] + [str(a) for a in args]
-        
+
         # Run and capture output for parsing
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
@@ -71,7 +71,7 @@ def run_benchmark(executable_path, args):
             print("Printing raw output from the cpp executable")
             print(output)
             return None
-        
+
     except subprocess.CalledProcessError as e:
         print(f"Execution failed with return code {e.returncode}")
         print("Stderr:", e.stderr)
@@ -93,7 +93,7 @@ def main():
             res = run_benchmark(EXECUTABLE_PATH, [N])
             if res:
                 k_ms, t_ms = res
-            
+
                 # Bandwidth Calculation (approximate)
                 total_bytes = 0.0
 
@@ -106,7 +106,7 @@ def main():
                 elif EXECUTABLE_PATH == "./bin/test_topk.out":
                     k = 4
                     total_bytes = 4 * N * N + 4 * N * k
-            
+
                 # GB/s = (Bytes / 1e9) / (Seconds)
                 # Time is in ms, so divide by 1000.0
                 if k_ms > 0:
