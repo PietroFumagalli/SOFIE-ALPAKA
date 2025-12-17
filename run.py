@@ -5,17 +5,19 @@ import re
 
 # Configuration
 EXECUTABLE_PATHS = [
-    "./bin/test_transpose.out",
+    "./bin/test_trivial.out",
     "./bin/test_concat.out",
-    "./bin/test_where.out",
-    "./bin/test_topk.out"
+    "./bin/test_transpose.out",
+    "./bin/test_topk.out",
+    "./bin/test_where.out"
 ]
 
 BENCHMARK_SIZES = [
     512,
     1024,
     2048,
-    4096
+    4096,
+    8192
 ]
 
 def build_kernel_tests():
@@ -97,10 +99,13 @@ def main():
                 # Bandwidth Calculation (approximate)
                 total_bytes = 0.0
 
+                if EXECUTABLE_PATH == "./bin/test_trivial.out":
+                    total_bytes = 8 * N * N
                 if EXECUTABLE_PATH == "./bin/test_transpose.out":
                     total_bytes = 8 * N * N
                 elif EXECUTABLE_PATH == "./bin/test_concat.out":
-                    total_bytes = 24 * N * N
+                    concat_num = 3
+                    total_bytes = 8 * concat_num * N * N
                 elif EXECUTABLE_PATH == "./bin/test_where.out":
                     total_bytes = 13 * N * N 
                 elif EXECUTABLE_PATH == "./bin/test_topk.out":

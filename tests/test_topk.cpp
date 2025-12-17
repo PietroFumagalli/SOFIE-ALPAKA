@@ -134,6 +134,16 @@ int main(int argc, char* argv[]) {
     auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
         blocksPerGrid, threadsPerBlock, grid_elements};
 
+    // Warmup run
+    TopKKernel<K, MaxRegisters> kernel;
+
+    alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
+                      alpaka::getPtrNative(aOut), input_strides, output_strides,
+                      grid_elements, TopkAxis, extentIn[TopkAxis],
+                      padding_value);
+
+    alpaka::wait(queue);
+
     // Initial data transfer
     // 1) INPUT -> host buffer (safe via raw pointer)
     {
@@ -147,8 +157,6 @@ int main(int argc, char* argv[]) {
     alpaka::wait(queue);
 
     // Launch kernel
-    TopKKernel<K, MaxRegisters> kernel;
-
     auto start_kernel = now();
 
     alpaka::exec<Acc>(queue, workDiv, kernel, alpaka::getPtrNative(aIn),
