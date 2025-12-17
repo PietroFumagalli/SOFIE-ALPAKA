@@ -20,6 +20,16 @@ using DevAcc = alpaka::DevCudaRt;
 using QueueAcc = alpaka::Queue<DevAcc, alpaka::NonBlocking>;
 using Acc = alpaka::AccGpuCudaRt<Dim, Idx>;
 
+#elif defined(ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED)
+using DevAcc = alpaka::DevCpu;
+using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
+using Acc = alpaka::AccCpuTbbBlocks<Dim, Idx>;
+
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED)
+using DevAcc = alpaka::DevCpu;
+using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
+using Acc = alpaka::AccCpuSerial<Dim, Idx>;
+
 #elif defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
 using DevAcc = alpaka::DevCpu;
 using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
@@ -92,7 +102,16 @@ int main(int argc, char* argv[]) {
 
     alpaka::Vec<Dim, Idx> threadsPerBlock;
     alpaka::Vec<Dim, Idx> blocksPerGrid;
-    Idx const TARGET_BLOCK_SIZE = 16;
+    Idx TARGET_BLOCK_SIZE = 16;
+    bool limitBlocks = false;
+
+#if defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED) || \
+    defined(ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED) || \
+    defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
+
+    TARGET_BLOCK_SIZE = 1;
+    limitBlocks = true;
+#endif
 
     for (std::size_t d = 0; d < Dim::value; ++d) {
         if (d == TopkAxis) {
@@ -101,6 +120,10 @@ int main(int argc, char* argv[]) {
         }
         else {
             threadsPerBlock[d] = TARGET_BLOCK_SIZE;
+
+            if (limitBlocks) {
+                blocksPerGrid[d] = std::min(grid_elements[d], std::size_t(64));
+            }
             blocksPerGrid[d] = (grid_elements[d] + threadsPerBlock[d] - 1) /
                                threadsPerBlock[d];
         }

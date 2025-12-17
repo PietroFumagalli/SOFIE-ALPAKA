@@ -14,7 +14,8 @@ EXECUTABLE_PATHS = [
 BENCHMARK_SIZES = [
     512,
     1024,
-    # 2048 # Be careful
+    2048,
+    4096
 ]
 
 def build_kernel_tests():
@@ -80,8 +81,7 @@ def main():
     if not build_kernel_tests():
         sys.exit(1)
 
-    print("Bandwidth calculated based on kernel execution time only,")
-    print("if the result is 0 you're probably using the CPU itself as the accelerator\n")
+    print("Bandwidth calculated based on kernel execution time only")
 
     # Benchmark Phase
     for EXECUTABLE_PATH in EXECUTABLE_PATHS:
@@ -90,15 +90,11 @@ def main():
         print("-" * 65)
 
         for N in BENCHMARK_SIZES:
-        
             res = run_benchmark(EXECUTABLE_PATH, [N])
-        
             if res:
                 k_ms, t_ms = res
             
                 # Bandwidth Calculation (approximate)
-                # Transpose reads N*N floats and writes N*N floats
-                # Total Bytes = 2 * N * N * 4 bytes (for float32)
                 total_bytes = 0.0
 
                 if EXECUTABLE_PATH == "./bin/test_transpose.out":
@@ -107,7 +103,7 @@ def main():
                     total_bytes = 24 * N * N
                 elif EXECUTABLE_PATH == "./bin/test_where.out":
                     total_bytes = 13 * N * N 
-                else:
+                elif EXECUTABLE_PATH == "./bin/test_topk.out":
                     k = 4
                     total_bytes = 4 * N * N + 4 * N * k
             
@@ -118,9 +114,12 @@ def main():
                 else:
                     bandwidth_gbs = 0.0
 
-                print(f"{N:<12} | {k_ms:<12.4f} | {t_ms:<12.4f} | {bandwidth_gbs:<18.2f}")
+                print(f"{N:<12} | {k_ms:<12.4f} | {t_ms:<12.4f} | {bandwidth_gbs:<18.4f}")
 
-        print("-" * 65, "\n")
+        print("-" * 65)
+
+        if EXECUTABLE_PATH != EXECUTABLE_PATHS[-1]:
+            print("")
 
 if __name__ == "__main__":
     main()

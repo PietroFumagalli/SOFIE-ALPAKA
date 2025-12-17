@@ -16,6 +16,16 @@ using DevAcc = alpaka::DevCudaRt;
 using QueueAcc = alpaka::Queue<DevAcc, alpaka::NonBlocking>;
 using Acc = alpaka::AccGpuCudaRt<Dim, Idx>;
 
+#elif defined(ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED)
+using DevAcc = alpaka::DevCpu;
+using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
+using Acc = alpaka::AccCpuTbbBlocks<Dim, Idx>;
+
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED)
+using DevAcc = alpaka::DevCpu;
+using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
+using Acc = alpaka::AccCpuSerial<Dim, Idx>;
+
 #elif defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
 using DevAcc = alpaka::DevCpu;
 using QueueAcc = alpaka::Queue<DevAcc, alpaka::Blocking>;
@@ -86,9 +96,19 @@ int main(int argc, char* argv[]) {
     auto perm = alpaka::Vec<Dim, Idx>(1, 0);
 
     // Work division: 2D mapping of threads to elements
-    const std::size_t threadsX = 16, threadsY = 16;
-    const std::size_t blocksX = (cols + threadsX - 1) / threadsX;
-    const std::size_t blocksY = (rows + threadsY - 1) / threadsY;
+    std::size_t threadsX = 16, threadsY = 16;
+    std::size_t blocksX = (cols + threadsX - 1) / threadsX;
+    std::size_t blocksY = (rows + threadsY - 1) / threadsY;
+
+#if defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED) || \
+    defined(ALPAKA_ACC_CPU_B_TBB_T_SEQ_ENABLED) || \
+    defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
+
+    threadsX = 1;
+    threadsY = 1;
+    blocksX = 64;
+    blocksY = 1;
+#endif
 
     auto const workDiv = alpaka::WorkDivMembers<Dim, Idx>{
         alpaka::Vec<Dim, Idx>(blocksX, blocksY),
