@@ -7,8 +7,9 @@ import time
 
 try:
     import torch
+
     HAS_TORCH = True
-except:
+except ModuleNotFoundError:
     HAS_TORCH = False
     print("PyTorch not found, running only C++.\n")
 
@@ -18,7 +19,7 @@ EXECUTABLE_PATHS_CPU = [
     "./bin/test_concat.out",
     "./bin/test_topk.out",
     "./bin/test_transpose.out",
-    "./bin/test_where.out"
+    "./bin/test_where.out",
 ]
 
 EXECUTABLE_PATHS_GPU = [
@@ -26,18 +27,11 @@ EXECUTABLE_PATHS_GPU = [
     "./build/test_transpose",
     "./build/test_concat",
     "./build/test_where",
-    "./build/test_topk"
+    "./build/test_topk",
 ]
 
-BENCHMARK_SIZES = [
-    128,
-    256,
-    512,
-    1024,
-    2048,
-    4096,
-    8192
-]
+BENCHMARK_SIZES = [128, 256, 512, 1024, 2048, 4096, 8192]
+
 
 def build_kernel_tests_cpu():
     """
@@ -91,13 +85,20 @@ def build_kernel_tests_gpu():
         print("Error: 'cmake' command not found. Is it installed?")
         return False
 
+
 def get_op_name(executable_path):
-    if "trivial" in executable_path: return "trivial"
-    if "transpose" in executable_path: return "transpose"
-    if "concat" in executable_path: return "concat"
-    if "where" in executable_path: return "where"
-    if "topk" in executable_path: return "topk"
+    if "trivial" in executable_path:
+        return "trivial"
+    if "transpose" in executable_path:
+        return "transpose"
+    if "concat" in executable_path:
+        return "concat"
+    if "where" in executable_path:
+        return "where"
+    if "topk" in executable_path:
+        return "topk"
     return "unknown"
+
 
 def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
     """
@@ -114,33 +115,33 @@ def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
     if op_name == "trivial":
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         y = torch.empty_like(x)
-        op = lambda: y.copy_(x)
+        op = lambda: y.copy_(x)  # noqa: E731
 
     elif op_name == "transpose":
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         y = torch.empty(N, N, device=device, dtype=torch.float32)
-        op = lambda: y.copy_(x.t())
+        op = lambda: y.copy_(x.t())  # noqa: E731
 
     elif op_name == "concat":
         t1 = torch.randn(N, N, device=device, dtype=torch.float32)
         t2 = torch.randn(N, N, device=device, dtype=torch.float32)
         t3 = torch.randn(N, N, device=device, dtype=torch.float32)
-        out_tensor = torch.empty(N, 3*N, device=device, dtype=torch.float32)
-        op = lambda: torch.cat((t1, t2, t3), dim=1, out=out_tensor)
+        out_tensor = torch.empty(N, 3 * N, device=device, dtype=torch.float32)
+        op = lambda: torch.cat((t1, t2, t3), dim=1, out=out_tensor)  # noqa: E731
 
     elif op_name == "where":
         cond = torch.randint(0, 2, (N, N), device=device, dtype=torch.bool)
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         y = torch.randn(N, N, device=device, dtype=torch.float32)
         out_tensor = torch.empty_like(x)
-        op = lambda: torch.where(cond, x, y, out=out_tensor)
+        op = lambda: torch.where(cond, x, y, out=out_tensor)  # noqa: E731
 
     elif op_name == "topk":
         k = 4
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         values = torch.empty(N, k, device=device, dtype=torch.float32)
         indices = torch.empty(N, k, device=device, dtype=torch.long)
-        op = lambda: torch.topk(x, k, out=(values, indices))
+        op = lambda: torch.topk(x, k, out=(values, indices))  # noqa: E731
     else:
         return None
 
@@ -148,11 +149,11 @@ def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
     for _ in range(warmup):
         op()
 
-    if device.type == 'cuda':
+    if device.type == "cuda":
         torch.cuda.synchronize()
 
     #  Benchmarking
-    if device.type == 'cuda':
+    if device.type == "cuda":
         # GPU Timing (Asynchronous)
         start_event = torch.cuda.Event(enable_timing=True)
         end_event = torch.cuda.Event(enable_timing=True)
@@ -173,6 +174,7 @@ def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
         total_ms = (end_time - start_time) * 1000.0
 
     return total_ms / num_repeats
+
 
 def run_cpp_benchmark(executable_path, args):
     """
@@ -208,7 +210,7 @@ def run_cpp_benchmark(executable_path, args):
         print("Stderr:", e.stderr)
 
 
-def main(gpu = False):
+def main(gpu=False):
     if gpu:
         print(f"\n{'Build System':^100}")
         print("-" * 100)
@@ -234,10 +236,12 @@ def main(gpu = False):
             # Flexible Headers
             # K = Kernel Time, T = Total Time
             if HAS_TORCH:
-                header = (f"{'SIZE':<6} | {'CUDA(K)':<9} | {'CUDA(T)':<9} | {'TORCH':<9} | "
-                        f"{'CUDA GB/s':<9} | {'TORCH GB/s':<11} | {'SPEEDUP':<8}")
+                header = (
+                    f"{'SIZE':<6} | {'CUDA(K)':<9} | {'CUDA(T)':<9} | {'TORCH':<9} | "
+                    f"{'CUDA GB/s':<9} | {'TORCH GB/s':<11} | {'SPEEDUP':<8}"
+                )
             else:
-                header = (f"{'SIZE':<6} | {'CUDA(K)':<10} | {'CUDA(T)':<10} | {'CUDA GB/s':<12}")
+                header = f"{'SIZE':<6} | {'CUDA(K)':<10} | {'CUDA(T)':<10} | {'CUDA GB/s':<12}"
 
             print(header)
             print("-" * len(header))
@@ -255,15 +259,28 @@ def main(gpu = False):
 
                 # 3. Calculate Bandwidth (Using Kernel Time)
                 total_bytes = 0.0
-                if op_name == "trivial": total_bytes = 8 * N * N
-                elif op_name == "transpose": total_bytes = 8 * N * N
-                elif op_name == "concat":  total_bytes = 24 * N * N
-                elif op_name == "where":   total_bytes = 13 * N * N
-                elif op_name == "topk":    total_bytes = 4 * N * N + 16 * N
+                if op_name == "trivial":
+                    total_bytes = 8 * N * N
+                elif op_name == "transpose":
+                    total_bytes = 8 * N * N
+                elif op_name == "concat":
+                    total_bytes = 24 * N * N
+                elif op_name == "where":
+                    total_bytes = 13 * N * N
+                elif op_name == "topk":
+                    total_bytes = 4 * N * N + 16 * N
 
                 # GB/s = (Bytes/1e9) / (ms/1000)
-                cpp_bw = (total_bytes / 1e9) / (cpp_k_ms / 1000.0) if (cpp_k_ms and cpp_k_ms > 0) else 0.0
-                torch_bw = (total_bytes / 1e9) / (torch_ms / 1000.0) if (torch_ms and torch_ms > 0) else 0.0
+                cpp_bw = (
+                    (total_bytes / 1e9) / (cpp_k_ms / 1000.0)
+                    if (cpp_k_ms and cpp_k_ms > 0)
+                    else 0.0
+                )
+                torch_bw = (
+                    (total_bytes / 1e9) / (torch_ms / 1000.0)
+                    if (torch_ms and torch_ms > 0)
+                    else 0.0
+                )
 
                 # Formatting
                 c_k_str = f"{cpp_k_ms:.4f}" if cpp_k_ms else "ERR"
@@ -280,8 +297,10 @@ def main(gpu = False):
                         ratio = torch_ms / cpp_k_ms
                         speedup_str = f"{ratio:.2f}x"
 
-                    print(f"{N:<6} | {c_k_str:<9} | {c_t_str:<9} | {t_ms_str:<9} | "
-                        f"{c_bw_str:<9} | {t_bw_str:<11} | {speedup_str:<8}")
+                    print(
+                        f"{N:<6} | {c_k_str:<9} | {c_t_str:<9} | {t_ms_str:<9} | "
+                        f"{c_bw_str:<9} | {t_bw_str:<11} | {speedup_str:<8}"
+                    )
                 else:
                     print(f"{N:<6} | {c_k_str:<10} | {c_t_str:<10} | {c_bw_str:<12}")
 
@@ -310,10 +329,14 @@ def main(gpu = False):
             # Flexible Headers
             # K = Kernel Time, T = Total Time
             if HAS_TORCH:
-                header = (f"{'SIZE':<6} | {'CPU(K)':<9} | {'CPU(T)':<9} | {'TORCH':<9} | "
-                        f"{'CPU GB/s':<9} | {'TORCH GB/s':<11} | {'SPEEDUP':<8}")
+                header = (
+                    f"{'SIZE':<6} | {'CPU(K)':<9} | {'CPU(T)':<9} | {'TORCH':<9} | "
+                    f"{'CPU GB/s':<9} | {'TORCH GB/s':<11} | {'SPEEDUP':<8}"
+                )
             else:
-                header = (f"{'SIZE':<6} | {'CPU(K)':<10} | {'CPU(T)':<10} | {'CPU GB/s':<12}")
+                header = (
+                    f"{'SIZE':<6} | {'CPU(K)':<10} | {'CPU(T)':<10} | {'CPU GB/s':<12}"
+                )
 
             print(header)
             print("-" * len(header))
@@ -331,15 +354,28 @@ def main(gpu = False):
 
                 # 3. Calculate Bandwidth (Using Kernel Time)
                 total_bytes = 0.0
-                if op_name == "trivial": total_bytes = 8 * N * N
-                elif op_name == "transpose": total_bytes = 8 * N * N
-                elif op_name == "concat":  total_bytes = 24 * N * N
-                elif op_name == "where":   total_bytes = 13 * N * N
-                elif op_name == "topk":    total_bytes = 4 * N * N + 16 * N
+                if op_name == "trivial":
+                    total_bytes = 8 * N * N
+                elif op_name == "transpose":
+                    total_bytes = 8 * N * N
+                elif op_name == "concat":
+                    total_bytes = 24 * N * N
+                elif op_name == "where":
+                    total_bytes = 13 * N * N
+                elif op_name == "topk":
+                    total_bytes = 4 * N * N + 16 * N
 
                 # GB/s = (Bytes/1e9) / (ms/1000)
-                cpp_bw = (total_bytes / 1e9) / (cpp_k_ms / 1000.0) if (cpp_k_ms and cpp_k_ms > 0) else 0.0
-                torch_bw = (total_bytes / 1e9) / (torch_ms / 1000.0) if (torch_ms and torch_ms > 0) else 0.0
+                cpp_bw = (
+                    (total_bytes / 1e9) / (cpp_k_ms / 1000.0)
+                    if (cpp_k_ms and cpp_k_ms > 0)
+                    else 0.0
+                )
+                torch_bw = (
+                    (total_bytes / 1e9) / (torch_ms / 1000.0)
+                    if (torch_ms and torch_ms > 0)
+                    else 0.0
+                )
 
                 # Formatting
                 c_k_str = f"{cpp_k_ms:.4f}" if cpp_k_ms else "ERR"
@@ -356,8 +392,10 @@ def main(gpu = False):
                         ratio = torch_ms / cpp_k_ms
                         speedup_str = f"{ratio:.2f}x"
 
-                    print(f"{N:<6} | {c_k_str:<9} | {c_t_str:<9} | {t_ms_str:<9} | "
-                        f"{c_bw_str:<9} | {t_bw_str:<11} | {speedup_str:<8}")
+                    print(
+                        f"{N:<6} | {c_k_str:<9} | {c_t_str:<9} | {t_ms_str:<9} | "
+                        f"{c_bw_str:<9} | {t_bw_str:<11} | {speedup_str:<8}"
+                    )
                 else:
                     print(f"{N:<6} | {c_k_str:<10} | {c_t_str:<10} | {c_bw_str:<12}")
 
@@ -365,9 +403,10 @@ def main(gpu = False):
 
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='Benchmark runner')
-    parser.add_argument('--gpu', help='Description for foo argument', action='store_true')
+    parser = argparse.ArgumentParser(description="Benchmark runner")
+    parser.add_argument(
+        "--gpu", help="Description for foo argument", action="store_true"
+    )
     args = parser.parse_args()
 
     main(args.gpu)
