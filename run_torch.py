@@ -4,7 +4,7 @@ import os
 import re
 import time
 
-try: 
+try:
     import torch
     HAS_TORCH = True
 except:
@@ -68,24 +68,24 @@ def run_pytorch_benchmark(op_name, N, num_repeats=10, warmup=5):
 
     # Detect device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+
     # Setup Data
     if op_name == "transpose":
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         op = lambda: x.t().contiguous()
-        
+
     elif op_name == "concat":
         t1 = torch.randn(N, N, device=device, dtype=torch.float32)
         t2 = torch.randn(N, N, device=device, dtype=torch.float32)
         t3 = torch.randn(N, N, device=device, dtype=torch.float32)
         op = lambda: torch.cat((t1, t2, t3), dim=1)
-        
+
     elif op_name == "where":
         cond = torch.randint(0, 2, (N, N), device=device, dtype=torch.bool)
         x = torch.randn(N, N, device=device, dtype=torch.float32)
         y = torch.randn(N, N, device=device, dtype=torch.float32)
         op = lambda: torch.where(cond, x, y)
-        
+
     elif op_name == "topk":
         k = 4
         x = torch.randn(N, N, device=device, dtype=torch.float32)
@@ -94,7 +94,7 @@ def run_pytorch_benchmark(op_name, N, num_repeats=10, warmup=5):
         return None
 
     '''
-    # Warmup 
+    # Warmup
     for _ in range(warmup):
         op()
     '''
@@ -114,7 +114,7 @@ def run_pytorch_benchmark(op_name, N, num_repeats=10, warmup=5):
         end_event.record()
         torch.cuda.synchronize()
         total_ms = start_event.elapsed_time(end_event)
-        
+
     else:
         # CPU Timing (Synchronous)
         start_time = time.perf_counter()
@@ -164,7 +164,7 @@ def main():
     device_name = "CPU"
     if HAS_TORCH and torch.cuda.is_available():
         device_name = f"GPU ({torch.cuda.get_device_name(0)})"
-    
+
     print(f"\n{'Benchmarking System':^100}")
     print(f"{f'PyTorch Device: {device_name}':^100}")
     print("-" * 100)
@@ -172,7 +172,7 @@ def main():
     for EXECUTABLE_PATH in EXECUTABLE_PATHS:
         op_name = get_op_name(EXECUTABLE_PATH)
         print(f"Operation: {op_name.upper()}")
-        
+
         # --- Flexible Headers ---
         # K = Kernel Time, T = Total Time
         if HAS_TORCH:
@@ -180,7 +180,7 @@ def main():
                       f"{'CPP GB/s':<9} | {'TORCH GB/s':<11} | {'SPEEDUP':<8}")
         else:
             header = (f"{'SIZE':<6} | {'CPP(K)':<10} | {'CPP(T)':<10} | {'CPP GB/s':<12}")
-            
+
         print(header)
         print("-" * len(header))
 
@@ -214,11 +214,11 @@ def main():
             if HAS_TORCH:
                 t_ms_str = f"{torch_ms:.4f}" if torch_ms else "ERR"
                 t_bw_str = f"{torch_bw:.2f}" if torch_ms else "-"
-                
+
                 # Compare PyTorch Time vs C++ Kernel Time
                 speedup_str = "-"
                 if cpp_k_ms and torch_ms and cpp_k_ms > 0:
-                    ratio = torch_ms / cpp_k_ms 
+                    ratio = torch_ms / cpp_k_ms
                     # If ratio < 1.0, PyTorch is faster. If > 1.0, C++ is faster.
                     # Usually 'Speedup' means (Baseline / New), so let's do (Torch / CPP)
                     # ratio 0.5x means PyTorch took half the time of CPP
@@ -233,4 +233,3 @@ def main():
         print("")
 if __name__ == "__main__":
     main()
-
