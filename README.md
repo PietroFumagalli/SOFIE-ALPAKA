@@ -118,4 +118,4 @@ The relevant header and DAT files will be generated in `SOFIE/build/src/SOFIE_co
 
 ## Results
 
-Please refer to our final report for the final results.
+Please refer to our [final report](./final_report.pdf) for the final results.
