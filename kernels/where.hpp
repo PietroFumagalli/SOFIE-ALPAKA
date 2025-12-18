@@ -5,6 +5,24 @@
 
 namespace alpaka_kernels {
 
+/**
+ * @brief Kernel to perform the "where" operation on tensors.
+ *
+ * @param TAcc Alpaka accelerator type.
+ * @param T Data type of the tensor elements.
+ * @param TCond Data type of the condition tensor elements (should be boolean).
+ * @param Dim Dimensionality of the tensors.
+ * @param Idx Index type for tensor dimensions.
+ * @param condition Pointer to the condition tensor.
+ * @param x Pointer to the tensor from which values are taken when condition is true.
+ * @param y Pointer to the tensor from which values are taken when condition is false.
+ * @param output Pointer to the output tensor.
+ * @param cond_strides Stride vector for the condition tensor.
+ * @param x_strides Stride vector for the x tensor.
+ * @param y_strides Stride vector for the y tensor.
+ * @param out_strides Stride vector for the output tensor.
+ * @param output_shape Shape vector for the output tensor.
+ */
 struct WhereKernel {
     template <typename TAcc, typename T, typename TCond, typename Dim, typename Idx>
     ALPAKA_FN_ACC void operator()(TAcc const& acc, TCond const* condition, T const* x, T const* y, T* output,

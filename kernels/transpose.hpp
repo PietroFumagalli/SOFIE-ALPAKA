@@ -5,6 +5,20 @@
 
 namespace alpaka_kernels {
 
+/**
+ * @brief Kernel to transpose a tensor according to a given permutation of axes.
+ *
+ * @param TAcc Alpaka accelerator type.
+ * @param T Data type of the tensor elements.
+ * @param Dim Dimensionality of the tensors.
+ * @param Idx Index type for tensor dimensions.
+ * @param input Pointer to the input tensor.
+ * @param output Pointer to the output tensor.
+ * @param input_strides Stride vector for the input tensor.
+ * @param output_strides Stride vector for the output tensor.
+ * @param output_shape Shape vector for the output tensor.
+ * @param perm Permutation vector defining the transpose operation.
+ */
 struct TransposeKernel {
     template <typename TAcc, typename T, typename Dim, typename Idx>
     ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* input, T* output, alpaka::Vec<Dim, Idx> input_strides,

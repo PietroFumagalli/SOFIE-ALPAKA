@@ -5,6 +5,17 @@
 
 namespace alpaka_kernels {
 
+/**
+ * @brief A trivial kernel that performs no operation.
+ *
+ * @param TAcc Alpaka accelerator type.
+ * @param T Data type of the tensor elements.
+ * @param Dim Dimensionality of the tensors.
+ * @param Idx Index type for tensor dimensions.
+ * @param input Pointer to the input tensor.
+ * @param output Pointer to the output tensor.
+ * @param output_shape Shape vector for the tensors.
+ */
 struct TrivialKernel {
     template <typename TAcc, typename T, typename Dim, typename Idx>
     ALPAKA_FN_ACC void operator()(TAcc const& acc, T const* input, T* output, alpaka::Vec<Dim, Idx> /*output_strides*/,

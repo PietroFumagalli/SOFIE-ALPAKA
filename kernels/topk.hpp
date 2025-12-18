@@ -5,8 +5,24 @@
 
 namespace alpaka_kernels {
 
-// K: the number of elements to select along the specified axis
-// MaxRegisters: threshold where we switch from registers to global memory
+/**
+ * @brief Kernel to compute the Top-K elements along a specified axis of a tensor.
+ *
+ * @param K Number of top elements to select.
+ * @param MaxRegisters Threshold for using registers vs global memory.
+ * @param TAcc Alpaka accelerator type.
+ * @param T Data type of the tensor elements.
+ * @param Dim Dimensionality of the tensors.
+ * @param Idx Index type for tensor dimensions.
+ * @param input Pointer to the input tensor.
+ * @param output Pointer to the output tensor.
+ * @param input_strides Stride vector for the input tensor.
+ * @param output_strides Stride vector for the output tensor.
+ * @param output_shape Shape vector for the output tensor.
+ * @param topk_axis Axis along which to compute the Top-K elements.
+ * @param topk_axis_size Size of the input tensor along the topk_axis.
+ * @param padding_value Value used for padding when there are fewer than K elements.
+ */
 template <std::size_t K, std::size_t MaxRegisters = 64>
 struct TopKKernel {
     template <typename TAcc, typename T, typename Dim, typename Idx>

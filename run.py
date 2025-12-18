@@ -1,3 +1,12 @@
+"""
+Benchmark Runner Script
+
+This script builds and runs benchmarks for various tensor operations implemented in C++.
+It supports both CPU and GPU benchmarks based on user input.
+It compares the performance of these implementations against PyTorch (on the same device)
+equivalents if PyTorch is available.
+"""
+
 import subprocess
 import sys
 import os
@@ -87,6 +96,9 @@ def build_kernel_tests_gpu():
 
 
 def get_op_name(executable_path):
+    """
+    Infers the operation name from the executable path.
+    """
     if "trivial" in executable_path:
         return "trivial"
     if "transpose" in executable_path:
@@ -104,6 +116,15 @@ def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
     """
     Runs the equivalent operation in PyTorch and measures execution time.
     Compatible with both CPU and GPU.
+
+    Parameters:
+    - op_name: Name of the operation to benchmark.
+    - N: Size parameter for the operation.
+    - num_repeats: Number of times to repeat the operation for averaging.
+    - warmup: Number of warmup iterations before timing.
+
+    Returns:
+    - Average execution time in milliseconds, or None if operation is unknown.
     """
     if not HAS_TORCH:
         return None
@@ -179,6 +200,10 @@ def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
 def run_cpp_benchmark(executable_path, args):
     """
     Runs the compiled executable with arguments.
+
+    Parameters:
+    - executable_path: Path to the compiled C++ executable.
+    - args: List of arguments to pass to the executable.
     """
     if not os.path.exists(executable_path):
         print(f"Error: Executable '{executable_path}' not found after build")
@@ -211,6 +236,15 @@ def run_cpp_benchmark(executable_path, args):
 
 
 def main(gpu=False):
+    """
+    Main function to build and run benchmarks.
+    1. Builds the kernel tests (CPU or GPU based on flag).
+    2. Runs benchmarks for each operation and size.
+    3. Compares C++ results with PyTorch if available.
+
+    Parameters:
+    - gpu: Boolean flag to indicate whether to benchmark GPU executables.
+    """
     if gpu:
         print(f"\n{'Build System':^100}")
         print("-" * 100)
@@ -405,7 +439,9 @@ def main(gpu=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark runner")
     parser.add_argument(
-        "--gpu", help="Description for foo argument", action="store_true"
+        "--gpu",
+        help="Flag to indicate whether to benchmark GPU executables",
+        action="store_true",
     )
     args = parser.parse_args()
 

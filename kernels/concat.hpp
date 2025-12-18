@@ -6,6 +6,22 @@
 
 namespace alpaka_kernels {
 
+/**
+ * @brief Kernel to concatenate multiple input tensors along a specified axis.
+ *
+ * @param TAcc Alpaka accelerator type.
+ * @param T Data type of the tensor elements.
+ * @param Dim Dimensionality of the tensors.
+ * @param Idx Index type for tensor dimensions.
+ * @param N Number of input tensors to concatenate.
+ * @param input_ptrs Array of pointers to input tensors.
+ * @param output Pointer to the output tensor.
+ * @param input_strides_vec Array of stride vectors for each input tensor.
+ * @param output_strides Stride vector for the output tensor.
+ * @param output_shape Shape vector for the output tensor.
+ * @param axis_sizes Sizes of each input tensor along the concatenation axis.
+ * @param concat_axis Axis along which to concatenate the input tensors.
+ */
 struct ConcatKernel {
     template <typename TAcc, typename T, typename Dim, typename Idx, std::size_t N>
     ALPAKA_FN_ACC void operator()(TAcc const& acc, std::array<T const*, N> input_ptrs, T* output,
