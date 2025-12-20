@@ -63,7 +63,7 @@ def get_op_name(executable_path):
     if "topk" in executable_path: return "topk"
     return "unknown"
 
-def run_pytorch_benchmark(op_name, N, num_repeats=1, warmup=0):
+def run_pytorch_benchmark(op_name, N, num_repeats=10, warmup=10):
     """
     Runs the equivalent operation in PyTorch and measures execution time.
     Compatible with both CPU and GPU.
@@ -209,6 +209,9 @@ def main():
                 cpp_k_ms, cpp_t_ms = cpp_res
             else:
                 cpp_k_ms, cpp_t_ms = None, None
+
+            if HAS_TORCH and torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
             # 2. Run PyTorch Benchmark
             torch_ms = run_pytorch_benchmark(op_name, N) if HAS_TORCH else None
